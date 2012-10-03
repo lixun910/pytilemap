@@ -1,7 +1,22 @@
 """
+import logging
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M',
+                    filename='/tmp/myapp.log',
+                    filemode='w')
+# define a Handler which writes INFO messages or higher to the sys.stderr
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# set a format which is simpler for console use
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+# tell the handler to use this format
+console.setFormatter(formatter)
+# add the handler to the root logger
+logging.getLogger('').addHandler(console)
 """
 
-__author__  = "Xun Li <xunli@asu.edu> "
 
 class ShapeObjectInterface():
     def __init__(self):
@@ -63,23 +78,24 @@ class PostgreShapeObject(ShapeObjectInterface):
         self.shapeObjects  = []
         self.screenObjects = []
         
-        self.conn = self._connect(self.uname, self.upwd)
-        self.extent = self.getExtent()
-        self.shapeType = self.getShapeType()
-        
+        self.conn = None #self._connect(self.uname, self.upwd)
+
     def _connect(self, uname, upwd):
         try:
             conn = psycopg2.connect(
                 database=self.database,
                 user=self.uname,
                 password=self.upwd)
+            #logging.info("connect to database by %s" %self)
         except psycopg2.DatabaseError, e:
             print 'Error %s' % e    
-            sys.exit(1)
+            #logging.error("Error: connect to database %s, by %s" % (e,self))
+            return None
         return conn
     
     def __del__(self):
         if self.conn:
+            #logging.info("disconnect to database by %s" % self)
             self.conn.close()
             
     def getName(self):
@@ -89,6 +105,9 @@ class PostgreShapeObject(ShapeObjectInterface):
         if self.extent:
             return self.extent
         try:
+            if not self.conn:
+                self.conn = self._connect(self.uname, self.upwd)
+
             cur = self.conn.cursor()
             cur.execute("SELECT st_extent(the_geom) FROM %s" % self.tablename)
             result = cur.fetchone()[0]
@@ -106,6 +125,7 @@ class PostgreShapeObject(ShapeObjectInterface):
             self.extent = extent
             return extent
         except psycopg2.DatabaseError, e:
+            #logging.error("Get Extent error: %s by %s" %(e, self))
             print 'Error %s' % e    
             self.conn.rollback()
             return None
@@ -114,12 +134,16 @@ class PostgreShapeObject(ShapeObjectInterface):
         if self.shapeType:
             return self.shapeType
         try:
+            if not self.conn:
+                self.conn = self._connect(self.uname, self.upwd)
+
             cur = self.conn.cursor()
             cur.execute("SELECT geometrytype(the_geom) FROM %s" % self.tablename)
             result = cur.fetchone()[0]
             self.shapeType = result
             return result
         except psycopg2.DatabaseError, e:
+            #logging.error("Get shape type error: %s by %s" %(e, self))
             print 'Error %s' % e    
             self.conn.rollback()
             return None
@@ -129,6 +153,9 @@ class PostgreShapeObject(ShapeObjectInterface):
             return self.shapeObjects
         
         try:
+            if not self.conn:
+                self.conn = self._connect(self.uname, self.upwd)
+                
             shapeType = self.getShapeType()
             
             cur = self.conn.cursor()
@@ -155,6 +182,9 @@ class PostgreShapeObject(ShapeObjectInterface):
         
     def getShapeObjectsByRegion(self, qregion):
         try:
+            if not self.conn:
+                self.conn = self._connect(self.uname, self.upwd)
+                
             qShapeObjects = []
             shapeType     = self.getShapeType()
             
@@ -178,7 +208,7 @@ class PostgreShapeObject(ShapeObjectInterface):
             if result == "f":
                 return qShapeObjects
             """
-            sql = "SELECT astext(the_geom) FROM %s WHERE st_contains('%s'::geometry,the_geom)"
+            sql = "SELECT astext(the_geom) FROM %s WHERE st_contains(geomfromtext('%s',4326),the_geom)"
             sql = (sql % (self.tablename,qregion_str))
             cur.execute(sql)
             rows = cur.fetchall()
@@ -190,15 +220,21 @@ class PostgreShapeObject(ShapeObjectInterface):
                 lat     = float(lat)
                 lon     = float(lon)
                 qShapeObjects.append((lat,lon))
-            
+           
+            #logging.info("Get %s shape objects by region by %s" %(len(qShapeObjects), self))
+            qShapeObjects = list(set(qShapeObjects))
             return qShapeObjects
         except psycopg2.DatabaseError, e:
+            #logging.error("Get shape object by region: %s by %s" %(e, self))
             print 'Error %s' % e    
             self.conn.rollback()
             return None
         
     def getShapeIdsByRegion(self, qregion):
         try:
+            if not self.conn:
+                self.conn = self._connect(self.uname, self.upwd)
+                
             qShapeIds = []
             shapeType = self.getShapeType()
             

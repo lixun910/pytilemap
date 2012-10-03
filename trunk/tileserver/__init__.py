@@ -66,7 +66,9 @@ def get_tile(path):
         
         from tileserver import base as backend
         tile = backend.PostGISTile(map_name, map_type, zoom, x, y, fspath)
-        if tile.is_empty():
+        if tile.is_outrange():
+            pass
+        elif tile.is_empty():
             """
             from base import EmptyTile
             emptyTile = EmptyTile(map_name, fspath)

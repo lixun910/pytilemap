@@ -270,6 +270,18 @@ class PostGISTile(Tile):
         self.postgis = PostgreShapeObject("test","crime","postgres","abc123")
         self.shapeObjects = []
         self.shapeType    = ""
+       
+    def is_outrange(self):
+        shapeExtent  = self.postgis.getExtent()
+
+        if shapeExtent[0] > self.e or\
+           shapeExtent[2] < self.w or\
+           shapeExtent[1] > self.n or\
+           shapeExtent[3] < self.s:
+            
+            return True
+        
+        return False
         
     def is_empty(self):
         """With attributes set on self, return a boolean.
@@ -280,13 +292,6 @@ class PostGISTile(Tile):
         """
         tileBound    = (self.w,self.s,self.e,self.n)
         tileRegion   = ((self.w,self.s), (self.e,self.s),(self.e,self.n),(self.w,self.n),(self.w,self.s))
-        shapeExtent  = self.postgis.getExtent()
-
-        if shapeExtent[0] > self.e or\
-           shapeExtent[2] < self.w or\
-           shapeExtent[1] > self.n or\
-           shapeExtent[3] < self.s:
-            return True
         
         shapeObjects = self.postgis.getShapeObjectsByRegion(tileRegion)
         shapeType    = self.postgis.getShapeType()
