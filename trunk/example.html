@@ -18,6 +18,19 @@
         map1 = new GTileLayer(copyrights, 10, 0);
         map1.getTileUrl = function (tile, zoom) {
             base = 'http://localhost/pytilemap';
+            map_name = 'crime';
+            map_type = 'classic';
+            url = base +'/'+ map_name +'/'+ map_type +'/'+ zoom +'/'
+            url += tile.x +','+ tile.y +'.png';
+            console.log(url);
+            return url;
+        }
+        map1.isPng = function () {return true;}
+        map1.getOpacity = function () {return 0.9;}
+        /*
+        map1 = new GTileLayer(copyrights, 10, 0);
+        map1.getTileUrl = function (tile, zoom) {
+            base = 'http://localhost/pytilemap';
             map_name = 'geoda_users';
             map_type = 'classic';
             url = base +'/'+ map_name +'/'+ map_type +'/'+ zoom +'/'
@@ -27,7 +40,6 @@
         }
         map1.isPng = function () {return true;}
         map1.getOpacity = function () {return 0.9;}
-    
         map2 = new GTileLayer(copyrights, 10, 0);
         map2.getTileUrl = function (tile, zoom) {
             base = 'http://localhost/pytilemap';
@@ -40,13 +52,13 @@
         }
         map2.isPng = function () {return true;}
         map2.getOpacity = function () {return 0.3;}
+        */ 
         
         function initialize () {
             var map = new GMap2(document.getElementById("map"));
             var center= new GLatLng(39.81447,-98.565388);
             map.setCenter(center, 4);
             map.addOverlay(new GTileLayerOverlay(map1));
-            map.addOverlay(new GTileLayerOverlay(map2));
             map.addControl(new GLargeMapControl());
         }
     

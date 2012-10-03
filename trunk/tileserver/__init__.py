@@ -65,17 +65,19 @@ def get_tile(path):
         # The tile that is built here will be served by the static handler.
         
         from tileserver import base as backend
-        tile = backend.ShapeTile(map_name, map_type, zoom, x, y, fspath)
+        tile = backend.PostGISTile(map_name, map_type, zoom, x, y, fspath)
         if tile.is_empty():
+            """
             from base import EmptyTile
             emptyTile = EmptyTile(map_name, fspath)
             emptypath = emptyTile.get_empty_fspath(zoom)
             if not os.path.exists(os.path.dirname(fspath)):
                 os.makedirs(os.path.dirname(fspath))
             os.symlink(emptypath,fspath)
+            """
+            pass
         else:
             tile.rebuild()
             tile.save()
-            pass
 
     return fspath

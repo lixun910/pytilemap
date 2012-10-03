@@ -4,10 +4,10 @@ import stat
 
 import tileserver
 import tileserver.opacity
+from tileserver.ShapeObjectInterface import PostgreShapeObject
 import gmerc
 from tileserver import BUILD_EMPTIES, SIZE
-from PIL import Image, ImageDraw, ImageChops
-import pysal
+from PIL import Image, ImageDraw
 
 
 class EmptyTile(object):
@@ -211,7 +211,6 @@ class Tile(object):
 
 
 class ShapeTile(Tile):
-
     def rebuild(self):
         self.mapname
         # read objects, shp type from mapname
@@ -262,3 +261,73 @@ class ShapeTile(Tile):
     
     def save(self):
         self.img.save(self.fspath, 'PNG')
+        
+class PostGISTile(Tile):
+    
+    def __init__(self, mapname, map_type,  zoom, x, y, fspath):
+        Tile.__init__(self,mapname, map_type, zoom, x, y, fspath)
+        
+        self.postgis = PostgreShapeObject("test","crime","postgres","abc123")
+        self.shapeObjects = []
+        self.shapeType    = ""
+        
+    def is_empty(self):
+        """With attributes set on self, return a boolean.
+
+        Calc lat/lng bounds of this tile (include half-dot-width of padding)
+        SELECT count(uid) FROM points
+
+        """
+        tileBound    = (self.w,self.s,self.e,self.n)
+        tileRegion   = ((self.w,self.s), (self.e,self.s),(self.e,self.n),(self.w,self.n),(self.w,self.s))
+        shapeExtent  = self.postgis.getExtent()
+
+        if shapeExtent[0] > self.e or\
+           shapeExtent[2] < self.w or\
+           shapeExtent[1] > self.n or\
+           shapeExtent[3] < self.s:
+            return True
+        
+        shapeObjects = self.postgis.getShapeObjectsByRegion(tileRegion)
+        shapeType    = self.postgis.getShapeType()
+        self.shapeObjects = shapeObjects
+        self.shapeType    = shapeType
+        del self.postgis
+        
+        return len(shapeObjects) == 0
+    
+    def rebuild(self):
+        self.img = self.hook_rebuild()
+        
+        dirpath = os.path.dirname(self.fspath)
+        if dirpath and not os.path.isdir(dirpath):
+            os.makedirs(dirpath, 0755)
+    
+    def hook_rebuild(self):
+        self.img  = Image.new('RGBA', (SIZE,SIZE), (255,255,255,0))
+        draw = ImageDraw.Draw(self.img)
+
+        if self.shapeType == "POINT":
+            for x,y in self.shapeObjects:
+                x, y = gmerc.ll2px(y,x, self.zoom)
+                x = x - self.x1 # account for tile offset relative to 
+                y = y - self.y1 #  overall map
+                draw.ellipse( (x-2,y-2,x+2,y+2), fill="red",outline="black") 
+
+        elif self.shpType == "POLYGON":
+            for obj in self.shapeObjects:
+                for poly in obj.parts:
+                    _poly = []
+                    for pt in poly:
+                        x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
+                        x = x - self.x1 # account for tile offset relative to 
+                        y = y - self.y1 #  overall map
+                        _poly.append((x,y))
+                    draw.polygon(_poly, outline="black", fill="blue")
+                    
+        return self.img
+    
+    def save(self):
+        self.img.save(self.fspath, 'PNG')        
+ 
+       

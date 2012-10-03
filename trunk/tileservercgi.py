@@ -7,13 +7,20 @@ if not os.getenv("DEBUG"):
     cgitb.enable()
 
 
-
 import tileserver
 
 if os.getenv("DEBUG"):
     os.remove("/var/cache/"+os.getenv("REQUEST_URI"))
-
-#fn = tileserver.get_tile("/"+"/".join("/pytilemap/geoda_users/classic/4/3,5.png".split("/")[-4:]))
+"""
+import datetime
+print datetime.datetime.now() 
+fn = tileserver.get_tile("/"+"/".join("/pytilemap/crime/classic/10/3,5.png".split("/")[-4:]))
+fn = tileserver.get_tile("/"+"/".join("/pytilemap/crime/classic/10/193,410.png".split("/")[-4:]))
+fn = tileserver.get_tile("/"+"/".join("/pytilemap/crime/classic/10/194,410.png".split("/")[-4:]))
+fn = tileserver.get_tile("/"+"/".join("/pytilemap/crime/classic/10/193,411.png".split("/")[-4:]))
+fn = tileserver.get_tile("/"+"/".join("/pytilemap/crime/classic/10/194,411.png".split("/")[-4:]))
+print datetime.datetime.now() 
+"""
 fn = tileserver.get_tile("/"+"/".join(os.getenv("REQUEST_URI").split("/")[-4:]))
 
 if not os.path.exists(fn):
