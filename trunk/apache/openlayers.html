@@ -2,6 +2,12 @@
 <head>
 <script src="https://maps.google.com/maps?file=api&amp;v=3&amp;key=" type="text/javascript"></script>
 <script type="text/javascript" src="http://openlayers.org/api/OpenLayers.js"></script>
+
+<style>
+.olImageLoadError {
+    display: none !important;
+}
+</style>
 <script type="text/javascript">
 
 var map;
@@ -41,8 +47,8 @@ function init() {
     // =================================== 
     // start new code for pytilemap layer
     var tiles77_1 = new OpenLayers.Layer.TMS(
-	"asu_mesa_tempe_merge_clor",
-	"http://dev.dt.asu.edu/dist/pytilemap/",
+	"testmap",
+	"http://localhost/pytilemap/",
 	{
 	    type:'png',
 	    isBaseLayer:false,
@@ -64,8 +70,8 @@ function init() {
     map.addLayers([tiles77_1]);
 
     var tiles77_2 = new OpenLayers.Layer.TMS(
-	"data_and_rates_for_beats",
-	"http://dev.dt.asu.edu/dist/pytilemap/",
+	"testmap2",
+	"http://localhost/pytilemap/",
 	{
 	    type:'png',
 	    isBaseLayer:false,
