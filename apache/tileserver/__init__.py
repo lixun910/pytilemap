@@ -19,6 +19,9 @@ os.umask(0002)
 SIZE = 256 # size of (square) tile; NB: changing this will break gmerc calls!
 MAX_ZOOM = 31 # this depends on Google API; 0 is furthest out as of recent ver.
 
+DB = "test"
+DB_UNAME = "test"
+DB_UPWD  = "test"
 
 ROOT = "/var/www/redmine/public/dist/tmp/dist/pytilemap"
 EMPTYTILE = '/'.join([ROOT,'empty.png'])

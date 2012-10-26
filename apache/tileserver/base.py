@@ -2,7 +2,7 @@ import os
 
 from tileserver.ShapeObjectInterface import PostgreShapeObject
 import gmerc
-from tileserver import BUILD_EMPTIES, SIZE
+from tileserver import BUILD_EMPTIES, SIZE, DB, DB_UNAME, DB_UPWD
 from PIL import Image, ImageDraw
 
 class Tile(object):
@@ -154,7 +154,7 @@ class PostGISTile(Tile):
     def __init__(self, mapname, map_type,  zoom, x, y, fspath):
         Tile.__init__(self,mapname, map_type, zoom, x, y, fspath)
 	
-        self.postgis  = PostgreShapeObject("jie",mapname,"rob","dtpostgresdev")
+        self.postgis  = PostgreShapeObject(DB,mapname,DB_UNAME,DB_UPWD)
         self.shapeObjects = []
         self.shapeType    = ""
         self.colorScheme  = {}
