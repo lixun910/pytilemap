@@ -1,0 +1,29 @@
+# Add to Apache Config
+#    Alias /pytilemap/ /this/directory/
+#    Alias /mapcache/ /var/cache/pytilemap/
+
+# Make cache directory
+# mkdir /var/cache/pytilemap
+# chown www-data /var/cache/pytilemap
+# chmod 2775 /var/cache/pytilemap
+
+Addhandler cgi-script .py
+Options +ExecCGI
+
+<IfModule mod_rewrite.c>
+RewriteEngine on
+</IfModule>
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+RewriteBase /pytilemap
+
+# Serve up file if already cached
+RewriteCond /var/cache%{REQUEST_URI} -f
+RewriteRule ^(.+) /mapcache/$1 [L]
+
+# Generate file
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.+) tileservercgi.py [L]
+</IfModule>
