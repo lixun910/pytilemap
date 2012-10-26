@@ -1,0 +1,92 @@
+<html>
+<head>
+<script src="https://maps.google.com/maps?file=api&amp;v=3&amp;key=" type="text/javascript"></script>
+<script type="text/javascript" src="http://openlayers.org/api/OpenLayers.js"></script>
+<style>
+.olImageLoadError {
+    display: none !important;
+}
+</style>
+<script type="text/javascript">
+
+var map;
+
+function init() {
+    options = 
+    {
+   	maxExtent: new OpenLayers.Bounds(
+		-20037508.3427892,-20037508.3427892,20037508.3427892,20037508.3427892), 
+	numZoomLevels:18, 
+	maxResolution:156543.0339, 
+   	units:'m', 
+	projection: "EPSG:900913",
+   	displayProjection: new OpenLayers.Projection("EPSG:4326")
+    } 
+    map = new OpenLayers.Map('map',options);
+    
+    var gphy = new OpenLayers.Layer.Google(
+            "Google Physical",
+            {type: G_PHYSICAL_MAP, 'sphericalMercator': true}
+            );
+    var gmap = new OpenLayers.Layer.Google(
+            "Google Streets",
+            {'sphericalMercator': true}
+            );
+    var gsat = new OpenLayers.Layer.Google(
+            "Google Satellite",
+            {type: G_SATELLITE_MAP, 'sphericalMercator': true, numZoomLevels: 22}
+            );
+    var ghyb = new OpenLayers.Layer.Google(
+            "Google Hybrid",
+            {type: G_HYBRID_MAP, 'sphericalMercator': true}
+            );
+    map.addLayers([gphy, gmap, ghyb, gsat]);
+    map.addControl(new OpenLayers.Control.LayerSwitcher());
+
+    // =================================== 
+    // start new code for pytilemap layer
+    var tiles77_1 = new OpenLayers.Layer.TMS(
+	"asu_mesa_tempe_merge_clor",
+	"http://localhost:8080/",
+	{
+	    type:'png',
+	    isBaseLayer:false,
+	    opacity:0.9,
+	    getURL: function(bounds){
+	        var res = this.map.getResolution();
+	        var x = Math.round ((bounds.left - this.maxExtent.left) / (res * this.tileSize.w));
+		var y = Math.round ((this.maxExtent.top - bounds.top) / (res * this.tileSize.h));
+		var z = this.map.getZoom();
+		var path = "crime" + "/" + "color" + "/" + z + "/" + x + "," + y + "." + this.type; 
+		var url = this.url;
+		if (url instanceof Array) {
+		    url = this.selectUrl(path, url);
+		}
+		console.log(url+path);
+		return url + path;
+	    } 
+        });
+    map.addLayers([tiles77_1]);
+
+    // end new code for pytilemap layer
+    // =================================== 
+
+
+    var extent77 = [-111.956841546762,33.4073989249582,-111.939707516314,33.4284340895503];
+    var projWGS84  = new OpenLayers.Projection("EPSG:4326"),
+        proj900913 = new OpenLayers.Projection("EPSG:900913"),
+        ll_point77   = new OpenLayers.LonLat(extent77[0],extent77[1]),
+        ur_point77   = new OpenLayers.LonLat(extent77[2],extent77[3]);
+    ll_point77.transform(projWGS84,proj900913);
+    ur_point77.transform(projWGS84,proj900913);
+    extent77 = [ll_point77.lon, ll_point77.lat, ur_point77.lon, ur_point77.lat];
+    var bounds77 = new OpenLayers.Bounds(extent77[0],extent77[1],extent77[2],extent77[3]);
+    map.zoomToExtent(bounds77, true);
+}
+
+</script>
+</head>
+
+<body onload="init()">
+<div id="map" style="width: 800px; height: 600px"></div>
+</body>

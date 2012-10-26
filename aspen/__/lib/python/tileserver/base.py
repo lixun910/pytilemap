@@ -1,9 +1,12 @@
 import os
+import stat
+from tileserver import log
 
 from tileserver.ShapeObjectInterface import PostgreShapeObject
 import gmerc
-from tileserver import BUILD_EMPTIES, SIZE
+from tileserver import BUILD_EMPTIES, SIZE, CONN
 from PIL import Image, ImageDraw
+
 
 class Tile(object):
     """Base class for tile representations.
@@ -79,6 +82,11 @@ class Tile(object):
         """
         return False
 
+    def is_stale(self):
+        log.info(self.fspath)
+        if os.path.exists(self.fspath):
+            return True
+        return False
 
     def rebuild(self):
         """Rebuild the image at self.img. Real work delegated to subclasses.
@@ -149,26 +157,75 @@ class Tile(object):
         raise NotImplementedError
 
 
+class ShapeTile(Tile):
+    def rebuild(self):
+        self.mapname
+        # read objects, shp type from mapname
+        f = pysal.open('/Users/xunli/data/%s.shp'%self.mapname)
+        shp_type    = f.type
+        shp_objects = f.read()
+        
+        # query objects in tile extent
+        locator = None
+        bound   = pysal.cg.Rectangle(self.w,self.s,self.e,self.n)
+        
+        if shp_type == pysal.cg.Point:
+            locator = pysal.cg.PointLocator(shp_objects)
+        elif shp_type == pysal.cg.Polygon:
+            locator = pysal.cg.PolygonLocator(shp_objects)
+        
+        query_objects = locator.overlapping(bound)
+       
+        self.img = self.hook_rebuild(query_objects, shp_type)
+        
+        dirpath = os.path.dirname(self.fspath)
+        if dirpath and not os.path.isdir(dirpath):
+            os.makedirs(dirpath, 0755)
+    
+    def hook_rebuild(self, shp_objects, shp_type):
+        self.img  = Image.new('RGBA', (SIZE,SIZE), (255,255,255,0))
+        draw = ImageDraw.Draw(self.img)
+
+        if shp_type == pysal.cg.Point:
+            for x,y in shp_objects:
+                x, y = gmerc.ll2px(y,x, self.zoom)
+                x = x - self.x1 # account for tile offset relative to 
+                y = y - self.y1 #  overall map
+                draw.ellipse( (x-2,y-2,x+2,y+2), fill="red",outline="black") 
+
+        elif shp_type == pysal.cg.Polygon:
+            for obj in shp_objects:
+                for poly in obj.parts:
+                    _poly = []
+                    for pt in poly:
+                        x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
+                        x = x - self.x1 # account for tile offset relative to 
+                        y = y - self.y1 #  overall map
+                        _poly.append((x,y))
+                    draw.polygon(_poly, outline="black", fill="blue")
+                    
+        return self.img
+    
+    def save(self):
+        self.img.save(self.fspath, 'PNG')
+        
 class PostGISTile(Tile):
     
     def __init__(self, mapname, map_type,  zoom, x, y, fspath):
         Tile.__init__(self,mapname, map_type, zoom, x, y, fspath)
-	
-        self.postgis  = PostgreShapeObject("jie",mapname,"rob","dtpostgresdev")
+       
+        self.postgis = PostgreShapeObject(mapname,CONN)
         self.shapeObjects = []
         self.shapeType    = ""
         self.colorScheme  = {}
-       
+
     def is_outrange(self):
         shapeExtent  = self.postgis.getExtent()
-
         if shapeExtent[0] > self.e or\
            shapeExtent[2] < self.w or\
            shapeExtent[1] > self.n or\
            shapeExtent[3] < self.s:
-            
             return True
-        
         return False
         
     def is_empty(self):
@@ -181,9 +238,8 @@ class PostGISTile(Tile):
         self.shapeType    = self.postgis.getShapeType()
 
         tileBound    = (self.w,self.s,self.e,self.n)
-        tileRegion   = ((self.w,self.s), (self.e,self.s),
-			(self.e,self.n), (self.w,self.n),(self.w,self.s))
-    
+        tileRegion   = ((self.w,self.s), (self.e,self.s),(self.e,self.n),(self.w,self.n),(self.w,self.s))
+              
         if self.mapType.startswith("color"):
             colorColumn = "color"
             parameters  = self.mapType.split(",")
@@ -194,11 +250,7 @@ class PostGISTile(Tile):
         else: 
             self.shapeObjects = self.postgis.getShapeObjectsByRegion(tileRegion)
 
-        #disconnect database connection here
-        #todo: this should be ignored in "static" 
-        #db handler
-        del self.postgis
-
+        log.info(len(self.shapeObjects))
         return len(self.shapeObjects) == 0
     
     def rebuild(self):
@@ -211,19 +263,23 @@ class PostGISTile(Tile):
     def hook_rebuild(self):
         self.img  = Image.new('RGBA', (SIZE,SIZE), (255,255,255,0))
         draw = ImageDraw.Draw(self.img)
-
+        
         if len(self.colorScheme) > 0:
             colors = self.colorScheme.keys()
             for color in colors:
                 objIDs = self.colorScheme[color]
                 if self.shapeType == "POINT":
+                    pts = []
                     for i in objIDs:
                         x,y = self.shapeObjects[i]
                         x, y = gmerc.ll2px(y,x, self.zoom)
                         x = x - self.x1 # account for tile offset relative to 
                         y = y - self.y1 #  overall map
+                        pts.append((x,y))
+                    pts = list(set(pts))
+                    for x,y in pts:
                         draw.ellipse( (x-2,y-2,x+2,y+2), fill=color,outline="black") 
-                 elif self.shapeType == "MULTIPOLYGON":
+                elif self.shapeType == "MULTIPOLYGON":
                     for i in objIDs:
                         poly = self.shapeObjects[i]
                         _poly = []
@@ -234,24 +290,29 @@ class PostGISTile(Tile):
                             _poly.append((x,y))
                         draw.polygon(_poly, outline="black", fill=color)
             return self.img
-        
-        # without color scheme	
+ 
+
         if self.shapeType == "POINT":
+            pts = []
             for x,y in self.shapeObjects:
                 x, y = gmerc.ll2px(y,x, self.zoom)
                 x = x - self.x1 # account for tile offset relative to 
                 y = y - self.y1 #  overall map
+                pts.append((x,y))
+            pts = list(set(pts))
+            for x,y in pts:
                 draw.ellipse( (x-2,y-2,x+2,y+2), fill="red",outline="black") 
 
-        elif self.shapeType == "MULTIPOLYGON":
-            for poly in self.shapeObjects:
-                _poly = []
-                for pt in poly:
-                    x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
-                    x = x - self.x1 # account for tile offset relative to 
-                    y = y - self.y1 #  overall map
-                    _poly.append((x,y))
-                draw.polygon(_poly, outline="black", fill="blue")
+        elif self.shapeType == "POLYGON":
+            for obj in self.shapeObjects:
+                for poly in obj.parts:
+                    _poly = []
+                    for pt in poly:
+                        x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
+                        x = x - self.x1 # account for tile offset relative to 
+                        y = y - self.y1 #  overall map
+                        _poly.append((x,y))
+                    draw.polygon(_poly, outline="black", fill="blue")
                     
         return self.img
     

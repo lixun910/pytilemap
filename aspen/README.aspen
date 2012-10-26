@@ -1,0 +1,6 @@
+This directory is served by the application configured on line 1 of
+__/etc/apps.conf. To wit:
+
+/   tileserver:wsgi
+
+
