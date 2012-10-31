@@ -29,12 +29,11 @@ class Tile(object):
     
         # Expand bounds by one-half dot width.
         # ------------------------------------
-        """
-        x1 = x1 - dot.half_size
-        x2 = x2 + dot.half_size
-        y1 = y1 - dot.half_size
-        y2 = y2 + dot.half_size
-        """
+        self.pad = 5
+        x1 = x1 - self.pad
+        x2 = x2 + self.pad
+        y1 = y1 - self.pad
+        y2 = y2 + self.pad
         expanded_size = (x2-x1, y2-y1)
     
     
@@ -273,8 +272,8 @@ class PostGISTile(Tile):
                     for i in objIDs:
                         x,y = self.shapeObjects[i]
                         x, y = gmerc.ll2px(y,x, self.zoom)
-                        x = x - self.x1 # account for tile offset relative to 
-                        y = y - self.y1 #  overall map
+                        x = x - self.x1 -self.pad# account for tile offset relative to 
+                        y = y - self.y1 -self.pad#  overall map
                         pts.append((x,y))
                     pts = list(set(pts))
                     for x,y in pts:
@@ -285,8 +284,8 @@ class PostGISTile(Tile):
                         _poly = []
                         for pt in poly:
                             x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
-                            x = x - self.x1 # account for tile offset relative to 
-                            y = y - self.y1 #  overall map
+                            x = x - self.x1 -self.pad# account for tile offset relative to 
+                            y = y - self.y1 -self.pad#  overall map
                             _poly.append((x,y))
                         draw.polygon(_poly, outline="black", fill=color)
             return self.img
@@ -296,8 +295,8 @@ class PostGISTile(Tile):
             pts = []
             for x,y in self.shapeObjects:
                 x, y = gmerc.ll2px(y,x, self.zoom)
-                x = x - self.x1 # account for tile offset relative to 
-                y = y - self.y1 #  overall map
+                x = x - self.x1 -self.pad# account for tile offset relative to 
+                y = y - self.y1 -self.pad#  overall map
                 pts.append((x,y))
             pts = list(set(pts))
             for x,y in pts:
@@ -309,8 +308,8 @@ class PostGISTile(Tile):
                     _poly = []
                     for pt in poly:
                         x, y = gmerc.ll2px(pt[1],pt[0], self.zoom)
-                        x = x - self.x1 # account for tile offset relative to 
-                        y = y - self.y1 #  overall map
+                        x = x - self.x1 -self.pad# account for tile offset relative to 
+                        y = y - self.y1 -self.pad#  overall map
                         _poly.append((x,y))
                     draw.polygon(_poly, outline="black", fill="blue")
                     

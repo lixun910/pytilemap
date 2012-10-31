@@ -49,9 +49,9 @@ def get_tile(path):
         raw = path[:-4] # strip extension
         try:
             #assert raw.count('/') == 4, "%d /'s" % raw.count('/')
-            
+
             foo, map_name, map_type, zoom, xy = raw.split('/')
-           
+
             if map_type == "DELETE":
                 from shutil import rmtree
                 shutil.rmtree('/'.join([ROOT,map_name])) 
@@ -59,15 +59,15 @@ def get_tile(path):
 
             #assert map_type in map_types, ("bad map type: "+ map_type)
             #assert xy.count(',') == 1, "%d /'s" % xy.count(',')
-            
+
             x, y = xy.split(',')
-            
+
             #assert zoom.isdigit() and x.isdigit() and y.isdigit(), "not digits"
-            
+
             zoom = int(zoom)
             x = int(x)
             y = int(y)
-            
+
             #assert 0 <= zoom <= 30, "bad zoom: %d" % zoom
         except AssertionError, err:
             return str(err)
@@ -76,12 +76,12 @@ def get_tile(path):
         # Build and save the file.
         # ========================
         # The tile that is built here will be served by the static handler.
-        
+
         from tileserver import base as backend
         tile = backend.PostGISTile(map_name, map_type, zoom, x, y, fspath)
         if tile.is_outrange() or tile.is_empty():
             dirname = os.path.dirname(fspath)
-	    if not os.path.exists(dirname):
+            if not os.path.exists(dirname):
                 os.makedirs(dirname)
             os.symlink(EMPTYTILE,fspath)
         else:
