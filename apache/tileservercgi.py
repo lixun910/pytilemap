@@ -15,5 +15,8 @@ if not os.path.exists(fn):
     print ""
     print fn
     sys.exit(1)
-
-print "Location:http://%s%s\n" % (os.getenv("HTTP_HOST"),os.getenv("REQUEST_URI"))
+    
+protocol = 'http'
+if os.getenv("HTTPS")=='on':
+    protocol = 'https'
+print "Location:%s://%s%s\n" % (protocol, os.getenv("HTTP_HOST"),os.getenv("REQUEST_URI"))
